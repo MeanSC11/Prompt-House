@@ -1,0 +1,13 @@
+.chat-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font-size: 14px;
+  outline: none;
+}
+
+.chat-input::placeholder {
+  color: #ffffff;
+  opacity: 1;
+}
