@@ -1,35 +1,34 @@
-
-/*import express from "express";
-
-export const router = express.Router();
-
-// Route test Backend online
-router.get("/health", (req, res) => {
-  res.json({
-    status: "ok",
-    message: "Backend API working!",
-    time: new Date().toISOString(),
-  });
-});
-*/
-
-// src/routes/index.js
 import express from "express";
+import { generateText /*, chatCompletions */ } from "../services/ollama.js";
+
 const router = express.Router();
 
-// ✅ route เดิมที่มีอยู่
 router.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// ✅ route ใหม่สำหรับ AI chat
+// เวอร์ชันง่าย: รับ message เดียว → ตอบจาก /api/generate
 router.post("/chat", async (req, res) => {
-  const { message } = req.body;
+  try {
+    const { message, messages } = req.body || {};
 
-  // (mock response ก่อน — เดี๋ยวต่อจริงกับ LLM ทีหลัง)
-  const reply = `AI: ผมได้รับข้อความ "${message}" แล้วครับ 😄\nกำลังเตรียมแบบบ้านที่เข้ากับคำอธิบายนี้อยู่...`;
+    let reply = "";
+    if (Array.isArray(messages) && messages.length) {
+      // ถ้า Frontend ส่งเป็น messages (chat history) ให้ใช้แบบ chat
+      // reply = await chatCompletions(messages);
+      // ถ้ายังไม่ใช้ chat history ก็ใช้ message เดี่ยวก่อน:
+      const lastUser = messages.findLast(m => m.role === "user")?.content || "";
+      reply = await generateText(lastUser);
+    } else {
+      // ข้อความเดี่ยว
+      reply = await generateText(message || "");
+    }
 
-  res.json({ reply });
+    res.json({ reply });
+  } catch (err) {
+    console.error("Chat error:", err);
+    res.status(500).json({ error: "LLM error", detail: String(err?.message || err) });
+  }
 });
 
 export { router };

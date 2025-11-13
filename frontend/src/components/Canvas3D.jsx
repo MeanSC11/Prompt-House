@@ -6,7 +6,7 @@ import { createMouse3D } from "./Function3D/Mouse3D";
 import { createDraw3D } from "./Function3D/Draw3D";
 import { createEraser3D } from "./Function3D/Eraser3D";
 import { createRectangle3D } from "./Function3D/Rectangle3D";
-import { createPushPull3D } from "./Function3D/PushPull3D";   
+import { createPushPull3D } from "./Function3D/PushPull3D";
 
 export default function Canvas3D({ tool }) {
   const hostRef = useRef(null);
@@ -40,6 +40,7 @@ export default function Canvas3D({ tool }) {
 
     // --- Lights ---
     scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+
     const dir = new THREE.DirectionalLight(0xffffff, 0.7);
     dir.position.set(8, 12, 6);
     scene.add(dir);
@@ -49,6 +50,7 @@ export default function Canvas3D({ tool }) {
     const grey2 = 0xf0f1f3;
 
     const planeGeo = new THREE.PlaneGeometry(200, 200);
+
     const plane1 = new THREE.Mesh(
       planeGeo,
       new THREE.MeshBasicMaterial({ color: grey1 })

@@ -17,8 +17,8 @@ export function createRectangle3D({
   let isDrawing = false;
   let startPoint = null;
 
-  let previewLine = null;   // เส้นรอบสี่เหลี่ยม (LineLoop)
-  let previewDiag = null;   // เส้นทแยงสำหรับกรณีจตุรัส
+  let previewLine = null; // เส้นรอบสี่เหลี่ยม (LineLoop)
+  let previewDiag = null; // เส้นทแยงสำหรับกรณีจตุรัส
 
   // ---------- helper: world point บนพื้นจาก event ----------
   function getGroundPoint(evt) {
@@ -67,15 +67,25 @@ export function createRectangle3D({
     // อัปเดตเส้นรอบสี่เหลี่ยม
     const pos = previewLine.geometry.attributes.position.array;
     // p0
-    pos[0] = p0.x; pos[1] = 0.01; pos[2] = p0.z;
+    pos[0] = p0.x;
+    pos[1] = 0.01;
+    pos[2] = p0.z;
     // p1
-    pos[3] = p1.x; pos[4] = 0.01; pos[5] = p1.z;
+    pos[3] = p1.x;
+    pos[4] = 0.01;
+    pos[5] = p1.z;
     // p2
-    pos[6] = p2.x; pos[7] = 0.01; pos[8] = p2.z;
+    pos[6] = p2.x;
+    pos[7] = 0.01;
+    pos[8] = p2.z;
     // p3
-    pos[9]  = p3.x; pos[10] = 0.01; pos[11] = p3.z;
+    pos[9] = p3.x;
+    pos[10] = 0.01;
+    pos[11] = p3.z;
     // กลับมาที่ p0
-    pos[12] = p0.x; pos[13] = 0.01; pos[14] = p0.z;
+    pos[12] = p0.x;
+    pos[13] = 0.01;
+    pos[14] = p0.z;
 
     previewLine.geometry.attributes.position.needsUpdate = true;
     previewLine.visible = true;
@@ -83,8 +93,12 @@ export function createRectangle3D({
     // อัปเดตเส้นทแยงเฉพาะกรณีจตุรัส
     if (previewDiag) {
       const dpos = previewDiag.geometry.attributes.position.array;
-      dpos[0] = p0.x; dpos[1] = 0.01; dpos[2] = p0.z;
-      dpos[3] = p2.x; dpos[4] = 0.01; dpos[5] = p2.z;
+      dpos[0] = p0.x;
+      dpos[1] = 0.01;
+      dpos[2] = p0.z;
+      dpos[3] = p2.x;
+      dpos[4] = 0.01;
+      dpos[5] = p2.z;
       previewDiag.geometry.attributes.position.needsUpdate = true;
       previewDiag.computeLineDistances();
       previewDiag.visible = !!isSquare;
@@ -106,7 +120,7 @@ export function createRectangle3D({
     }
   }
 
-  // ---------- helper: สร้าง geometry จริง ----------
+  // ---------- geometry helper ----------
   function addEdge(a, b, color = 0x03045e) {
     const geo = new THREE.BufferGeometry().setFromPoints([
       a.clone().setY(0.01),
@@ -119,9 +133,12 @@ export function createRectangle3D({
     objectsRef.current.selectable.push(line);
   }
 
+  // ตรงนี้สำคัญสำหรับ push/pull
   function addFaceFromCorners(corners) {
-    // corners: [p0,p1,p2,p3] ตามเข็ม/ทวนเข็ม
+    if (!corners || corners.length < 3) return;
+
     const base = corners[0];
+
     const shape = new THREE.Shape(
       corners.map((p) => new THREE.Vector2(p.x - base.x, -(p.z - base.z)))
     );
@@ -139,11 +156,16 @@ export function createRectangle3D({
     mesh.position.set(base.x, 0.01, base.z);
     scene.add(mesh);
 
+    // ให้ push/pull รู้ว่านี่คือ face ที่ดึงได้
+    mesh.userData.isFace = true;
+    mesh.userData.base = base.clone();
+    mesh.userData.contour = corners.map((p) => p.clone());
+
     objectsRef.current.placed.push(mesh);
     objectsRef.current.selectable.push(mesh);
   }
 
-  // ---------- handlers ที่ Canvas3D เรียก ----------
+  // ---------- handlers ----------
   function onMouseDownRectangle(evt) {
     if (evt.button !== 0) return; // left only
     isDrawing = true;
@@ -161,16 +183,15 @@ export function createRectangle3D({
     // ถ้ามันเล็กมากก็ยังไม่ต้องโชว์อะไร
     if (Math.abs(dx) < MIN_SIZE && Math.abs(dz) < MIN_SIZE) return;
 
-    // snap ให้เป็นจตุรัสถ้าด้านใกล้เคียงกันพอ
     const absDx = Math.abs(dx);
     const absDz = Math.abs(dz);
     let isSquare = false;
 
+    // snap ให้เป็นจตุรัสถ้าด้านใกล้เคียงกันพอ
     const maxSide = Math.max(absDx, absDz);
     if (maxSide > MIN_SIZE) {
       const diff = Math.abs(absDx - absDz);
       if (diff < maxSide * SQUARE_TOLERANCE) {
-        // snap ให้เท่ากัน
         isSquare = true;
         if (absDx > absDz) {
           dz = Math.sign(dz || 1) * absDx;
@@ -206,12 +227,10 @@ export function createRectangle3D({
       return;
     }
 
-    // snap จตุรัสอีกครั้งแบบเดียวกับตอน move
-    let isSquare = false;
+    // snap จตุรัสอีกครั้งแบบเดียวกับตอน move (ไม่ต้องเก็บ isSquare ไว้ใช้งานต่อ)
     const maxSide = Math.max(absDx, absDz);
     const diff = Math.abs(absDx - absDz);
     if (diff < maxSide * SQUARE_TOLERANCE) {
-      isSquare = true;
       if (absDx > absDz) {
         dz = Math.sign(dz || 1) * absDx;
       } else {
@@ -232,7 +251,6 @@ export function createRectangle3D({
     addEdge(p3, p0);
     addFaceFromCorners(corners);
 
-    // ไม่ต้องเก็บเส้นทแยงจริง ๆ ไว้ใน scene (ตามตัวอย่าง sketchup เป็นแค่ helper)
     clearPreview();
     startPoint = null;
   }

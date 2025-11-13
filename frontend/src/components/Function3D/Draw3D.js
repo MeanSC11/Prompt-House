@@ -232,9 +232,9 @@ export function createDraw3D({
   }
 
   function addFaceFromPath(path) {
-    if (path.length < 3) return;
+    if (!path || path.length < 3) return;
 
-    const base = path[0];
+    const base = path[0].clone();
 
     const shape = new THREE.Shape(
       path.map((p) => new THREE.Vector2(p.x - base.x, -(p.z - base.z)))
@@ -251,11 +251,19 @@ export function createDraw3D({
     const mesh = new THREE.Mesh(geo, mat);
     mesh.rotation.x = -Math.PI / 2;
     mesh.position.set(base.x, 0.01, base.z);
+
+    // *** สำหรับ Push/Pull ***
+    mesh.userData.isFace = true;
+    mesh.userData.base = base;
+    mesh.userData.contour = path.map((p) => p.clone());
+
     scene.add(mesh);
 
     objectsRef.current.placed.push(mesh);
     objectsRef.current.selectable.push(mesh);
   }
+
+
 
   // ---------- preview line ----------
   function clearPreviewLine() {
